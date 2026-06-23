@@ -3,6 +3,8 @@ import numpy as np
 
 from ..circuit.candidates import Candidate
 
+# SAVING
+
 def save_parameter_train(name: str, candidate: Candidate, g_best: float, K_quantum: np.ndarray, K_classical: np.ndarray, X_subset: np.ndarray, y_subset: np.ndarray):
     """
     Saves the results from parameter training to find the best candidate
@@ -20,13 +22,6 @@ def save_parameter_train(name: str, candidate: Candidate, g_best: float, K_quant
     with open(path, 'wb') as f:
         pickle.dump(data, f)
     print(f"Saved → {path}")
-
-def load_parameter_train(name: str):
-    """
-    Loads the results from parameter training of a previous run
-    """    
-    with open(f'Results/{name}.pkl', 'rb') as f:
-        return pickle.load(f)
     
 def save_full_kernel(name: str, K_quantum: np.ndarray, K_classical: np.ndarray, g_full: float):
     """
@@ -41,6 +36,32 @@ def save_full_kernel(name: str, K_quantum: np.ndarray, K_classical: np.ndarray, 
         pickle.dump(data, f)
     print(f"Saved → Results/{name}.pkl")
 
+def save_svm_results(name : str, results: dict):
+    """
+    Saves SVM results from training
+    """
+    path = f'Results/{name}.pkl'
+    with open(path, 'wb') as f:
+        pickle.dump(results, f)
+    print(f"Saved -> {path}")
+
+# LOADING
+
+def load_parameter_train(name: str):
+    """
+    Loads the results from parameter training of a previous run
+    """    
+    with open(f'Results/{name}.pkl', 'rb') as f:
+        return pickle.load(f)
+
+
 def load_full_kernel(name: str):
+    with open(f'Results/{name}.pkl', 'rb') as f:
+        return pickle.load(f)
+
+def load_svm_results(name: str) -> dict:
+    """
+    Loads the results from SVM training of a previous run
+    """
     with open(f'Results/{name}.pkl', 'rb') as f:
         return pickle.load(f)

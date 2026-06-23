@@ -1,6 +1,6 @@
 # =======================================
 # PARAMETERS FOR SIMULATION
-
+# =======================================
 N_QUBITS = 4
 N_LAYERS = 4
 N_BITS   = N_QUBITS * N_LAYERS * 5

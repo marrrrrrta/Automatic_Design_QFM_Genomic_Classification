@@ -5,6 +5,10 @@ from ..circuit.candidates import Candidate
 from ..circuit.building import build_circuit
 from config.config import N_QUBITS
 
+# setup quantum circuit
+dev = qml.device("default.qubit", wires=N_QUBITS)
+@qml.qnode(dev)
+
 def quantum_kernel(x1: np.ndarray, x2: np.ndarray, candidate:Candidate
 ) -> float:
     """
@@ -22,7 +26,7 @@ def quantum_kernel(x1: np.ndarray, x2: np.ndarray, candidate:Candidate
     def circuit():
         build_circuit(candidate, x1)
         qml.adjoint(build_circuit)(candidate, x2)
-        probabilities = qml.probs(wires=range(N_QUBITS))
+        probabilities = qml.probs(wires=range(candidate.n_qubits))
         return probabilities
 
     # Determine the fidelity (first probability of the list)

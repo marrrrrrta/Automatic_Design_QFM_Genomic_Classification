@@ -1,7 +1,6 @@
 from sklearn.metrics.pairwise import rbf_kernel
 import numpy as np
 import optuna
-import mealpy
 from typing import Callable
 
 from config.config import N_QUBITS, N_LAYERS
@@ -48,7 +47,7 @@ def objective_optuna_generator(X: np.ndarray
     return objective
 
 def objective_mealpy_generator(X: np.ndarray
-) -> Callable[[mealpy.Trial], float]:
+) -> Callable[[np.ndarray], float]:
     """
     Returns a Mealpy objective over a given subset
 

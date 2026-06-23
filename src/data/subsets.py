@@ -71,8 +71,8 @@ def subset_nystrom_stratified(X_train: np.ndarray, y_train: np.ndarray, n_qubits
     idx_pos = np.where(y_train == +1)[0]    
 
     # Nystrom selection separately
-    lm_neg, _ = nystrom_landmark_selection(X_train[idx_neg], n_landmarks=n_pos, gamma=gamma)
-    lm_pos, _ = nystrom_landmark_selection(X_train[idx_pos], n_landmarks=n_neg, gamma=gamma)
+    lm_neg, _ = nystrom_landmark_selection(X_train[idx_neg], n_landmarks=n_neg, gamma=gamma)
+    lm_pos, _ = nystrom_landmark_selection(X_train[idx_pos], n_landmarks=n_pos, gamma=gamma)
 
     # Join them
     stratified_idx = np.concatenate([idx_neg[lm_neg], idx_pos[lm_pos]])
