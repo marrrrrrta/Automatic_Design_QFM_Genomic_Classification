@@ -1,7 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-def graph_subset(subset_name: str, X_train_full: np.ndarray, X_train_subset: np.ndarray, y_train_full: np.ndarray, y_train_subset:np.ndarray):
+def graph_subset(
+    subset_name: str, 
+    X_train_full: np.ndarray, X_train_subset: np.ndarray, 
+    y_train_full: np.ndarray, y_train_subset:np.ndarray
+):
     """Graph of the selected landmarks of a subset by a specific method"""
     fig, ax = plt.subplots(figsize=(6, 4))
     ax.scatter(X_train_full[:, 0], X_train_full[:, 1],
@@ -17,8 +21,8 @@ def graph_subset(subset_name: str, X_train_full: np.ndarray, X_train_subset: np.
     plt.show()
 
 def graph_kernels(
-        classical_name: str, quantum_name: str,
-        K_classic: np.ndarray, K_quantum: np.ndarray
+    classical_name: str, quantum_name: str,
+    K_classic: np.ndarray, K_quantum: np.ndarray
 ):
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     axes[0].imshow(K_classic, cmap="viridis", vmin=0, vmax=1)
@@ -29,3 +33,8 @@ def graph_kernels(
     plt.savefig(f'Results/graph_{classical_name}_{quantum_name}.png')
     plt.tight_layout()
     plt.show()
+
+def graph_accuracy(
+
+):
+    

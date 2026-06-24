@@ -3,13 +3,17 @@ from sklearn.metrics.pairwise import rbf_kernel
 import optuna
 from mealpy import BinaryVar, GA
 
+from config.config import N_QUBITS, N_LAYERS, N_TRIALS, N_EPOCH, N_POP_SIZE, N_PM
 from .objectives import objective_optuna_generator, objective_mealpy_generator
 from ..circuit.candidates import OptunaCandidate, MealpyCandidate
 from ..data.saving import save_parameter_train
 from ..kernel.quantum_kernel import quantum_kernel_matrix
 
-def train_candidate_optuna(s_type: str, X_subset: np.ndarray, y_subset: np.ndarray, n_qubits: int, n_trials: int, n_layers: int
-) -> tuple[OptunaCandidate, np.ndarray, np.ndarray]:
+def train_candidate_optuna(
+    subset_type: str, 
+    X_subset: np.ndarray, y_subset: np.ndarray, 
+    n_qubits: int = N_QUBITS, n_trials: int = N_TRIALS, n_layers: int = N_LAYERS
+) -> tuple[float, OptunaCandidate, np.ndarray, np.ndarray]:
 
     # Train
     study = optuna.create_study(direction="maximize")
@@ -25,11 +29,16 @@ def train_candidate_optuna(s_type: str, X_subset: np.ndarray, y_subset: np.ndarr
     K_classical = rbf_kernel(X_subset, gamma=1.0 / (n_qubits * X_subset.var()))
 
     # Save results
-    save_parameter_train(f'training_optuna_{s_type}_{n_trials}', best_candidate, study.best_value, K_quantum_best, K_classical, X_subset, y_subset)
+    save_parameter_train(f'training_optuna_{subset_type}_{n_trials}', best_candidate, study.best_value, K_quantum_best, K_classical, X_subset, y_subset)
 
     return study.best_value, best_candidate, K_quantum_best, K_classical
 
-def train_candidate_mealpy(s_type: str, X_subset: np.ndarray, y_subset: np.ndarray, n_qubits:int, n_layers:int, n_epoch: int, n_pop_size: int, n_pm: float):
+def train_candidate_mealpy(
+    subset_type: str, 
+    X_subset: np.ndarray, y_subset: np.ndarray, 
+    n_qubits:int = N_QUBITS, n_layers:int = N_LAYERS, 
+    n_epoch: int = N_EPOCH, n_pop_size: int = N_POP_SIZE, n_pm: float = N_PM
+):
 
     # Problem dictionary
     problem = {
@@ -52,6 +61,6 @@ def train_candidate_mealpy(s_type: str, X_subset: np.ndarray, y_subset: np.ndarr
 
     # Save results
     pm_str = str(n_pm).split('.')[1]
-    save_parameter_train(f'training_mealpy_{s_type}_{n_epoch}ep_{n_pop_size}pop_{pm_str}pm', best_candidate, optimizer.g_best.target.fitness, K_quantum_best, K_classical, X_subset, y_subset)
+    save_parameter_train(f'training_mealpy_{subset_type}_{n_epoch}ep_{n_pop_size}pop_{pm_str}pm', best_candidate, optimizer.g_best.target.fitness, K_quantum_best, K_classical, X_subset, y_subset)
 
     return optimizer.g_best.target.fitness, best_candidate, K_quantum_best, K_classical

@@ -7,13 +7,18 @@ from config.config import N_QUBITS
 
 # setup quantum circuit
 dev = qml.device("default.qubit", wires=N_QUBITS)
+
 @qml.qnode(dev)
+
+def quantum_kernel_circuit(x1: np.ndarray, x2: np.ndarray, candidate: Candidate):
+    build_circuit(candidate, x1)
+    qml.adjoint(build_circuit)(candidate, x2)
+    return qml.probs(wires=range(candidate.n_qubits))
 
 def quantum_kernel(x1: np.ndarray, x2: np.ndarray, candidate:Candidate
 ) -> float:
     """
     Computes the quantum kernel element given two datapoints x1 and x2.
-    The circuit is saved, but we also return the fidelity
 
     Args:
         x1 (1D array): one data point, shape (n_qubits,)
@@ -22,16 +27,7 @@ def quantum_kernel(x1: np.ndarray, x2: np.ndarray, candidate:Candidate
     Returns:
         float: fidelity of the circuit
     """    
-    # Starter to define the quantum circuit
-    def circuit():
-        build_circuit(candidate, x1)
-        qml.adjoint(build_circuit)(candidate, x2)
-        probabilities = qml.probs(wires=range(candidate.n_qubits))
-        return probabilities
-
-    # Determine the fidelity (first probability of the list)
-    fidelity = circuit()[0]
-    return fidelity
+    return float(quantum_kernel_circuit(x1, x2, candidate)[0])
 
 def quantum_kernel_matrix(X: np.ndarray, candidate:Candidate
 ) -> np.ndarray:

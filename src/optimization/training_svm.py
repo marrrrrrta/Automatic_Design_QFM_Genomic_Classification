@@ -39,7 +39,7 @@ def run_svm_prediction(
         print("Best C: ", results['best_C'])
         print("Best CV accuracy: ", results['best_cv_accuracy'])
         print(classification_report(y_test, y_pred))
-    if 'mealpy' in subset_name:
+    elif 'mealpy' in subset_name:
         print(f"REPORT: {subset_name} | {N_EPOCH} epochs | {N_POPSIZE} pop size | {N_PM} pm")
         print("Best C: ", results['best_C'])
         print("Best CV accuracy: ", results['best_cv_accuracy'])

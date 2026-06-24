@@ -1,11 +1,12 @@
 from .candidates import Candidate
 import pennylane as qml
 
-def build_circuit(candidate:Candidate, x):
+def build_circuit(candidate:Candidate, x: np.ndarray):
     """
     Generates a quantum circuit based on one proposed candidate
     Args:
         candidate (Candidate): proposed candidate.
+        x (np.ndarray): input features.
     """    
     # Counter to track which gene we are reading
     gene_idx = 0

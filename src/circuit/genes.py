@@ -20,7 +20,7 @@ class Gene:
     Base class that links one gene with a quantum gate.
     """
     def get_gene_info(self) -> dict:
-        pass
+        raise NotImplementedError
 
 class MealpyGene(Gene):
     """
@@ -28,7 +28,7 @@ class MealpyGene(Gene):
     The gene is encoded as a binary array, which will give info about the type of gate and its parameters.
     From a certain gene_bits candidate, the information of the gate and its parameters can be extracted.
     """
-    def __init__(self, gene_bits:list):
+    def __init__(self, gene_bits:np.ndarray):
         self.bits = gene_bits
         gate_bits  = ''.join(str(int(bit)) for bit in gene_bits[:3])
         angle_bits = ''.join(str(int(bit)) for bit in gene_bits[3:5])

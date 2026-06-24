@@ -1,3 +1,4 @@
+import numpy as np
 from .genes import Gene, MealpyGene, OptunaGene
 
 class Candidate:
@@ -19,7 +20,7 @@ class MealpyCandidate(Candidate):
     Candidate class for Mealpy optimization.
     Splits the bitstring into 5-bit slices and obtains the candidate information.
     """
-    def __init__(self, n_qubits:int , n_layers:int, bitstring: str):
+    def __init__(self, n_qubits:int , n_layers:int, bitstring: np.ndarray):
         super().__init__(n_qubits, n_layers)
 
         # Build the gene dictionary for this candidate by calling the MealpyGene class
