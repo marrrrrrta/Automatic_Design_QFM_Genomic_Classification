@@ -1,5 +1,7 @@
-from .candidates import Candidate
+import numpy as np
 import pennylane as qml
+
+from .candidates import Candidate
 
 def build_circuit(candidate:Candidate, x: np.ndarray):
     """

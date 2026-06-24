@@ -12,7 +12,11 @@ def run_svm_prediction(
     K_test: np.ndarray, y_test: np.ndarray,
     c_range: dict | None = None, cv: int = 5
 ) -> dict:
-    """Runs SVM prediction."""
+    """
+    Runs SVM prediction.
+    Returns:
+        results (dict): with 'subset_name', 'accuracy', 'best_C', 'best_cv_accuracy', 'y_pred'
+    """
     # GridsearchCV over C
     if c_range is None:
         c_range = {'C': [0.1, 1, 10, 100, 1000]}

@@ -10,6 +10,7 @@ def save_parameter_train(name: str, candidate: Candidate, g_best: float, K_quant
     Saves the results from parameter training to find the best candidate
     """
     data = {
+        'candidate': candidate,
         'genes':      [gene.get_gene_info() for gene in candidate.genes],
         'g_best':     g_best,
         'K_quantum':  K_quantum,

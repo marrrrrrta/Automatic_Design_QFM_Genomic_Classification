@@ -34,7 +34,4 @@ def graph_kernels(
     plt.tight_layout()
     plt.show()
 
-def graph_accuracy(
-
-):
     

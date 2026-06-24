@@ -5,7 +5,7 @@ class Candidate:
     """
     Base candidate class. Represents a proposal for a quantum circuit
     """
-    def __init__(self, n_qubits:int, n_layers:int): #, x):
+    def __init__(self, n_qubits: int, n_layers: int): #, x):
          self.n_qubits = n_qubits
          self.n_layers = n_layers
          self.n_genes = n_qubits * n_layers

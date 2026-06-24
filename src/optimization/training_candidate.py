@@ -3,7 +3,7 @@ from sklearn.metrics.pairwise import rbf_kernel
 import optuna
 from mealpy import BinaryVar, GA
 
-from config.config import N_QUBITS, N_LAYERS, N_TRIALS, N_EPOCH, N_POP_SIZE, N_PM
+from config.config import N_QUBITS, N_LAYERS, N_TRIALS, N_EPOCH, N_POPSIZE, N_PM
 from .objectives import objective_optuna_generator, objective_mealpy_generator
 from ..circuit.candidates import OptunaCandidate, MealpyCandidate
 from ..data.saving import save_parameter_train
@@ -37,7 +37,7 @@ def train_candidate_mealpy(
     subset_type: str, 
     X_subset: np.ndarray, y_subset: np.ndarray, 
     n_qubits:int = N_QUBITS, n_layers:int = N_LAYERS, 
-    n_epoch: int = N_EPOCH, n_pop_size: int = N_POP_SIZE, n_pm: float = N_PM
+    n_epoch: int = N_EPOCH, n_pop_size: int = N_POPSIZE, n_pm: float = N_PM
 ):
 
     # Problem dictionary

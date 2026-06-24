@@ -14,8 +14,9 @@ def classical_baseline(
     subset_name: str = 'Classical_baseline'
 ) -> dict:
     # Define kernels
-    K_train = rbf_kernel(X_train, gamma = 1.0 / (n_qubits * X_train.var()))
-    K_test = rbf_kernel(X_test,  gamma = 1.0 / (n_qubits * X_test.var()))
+    gamma = 1.0 / (n_qubits * X_train.var())
+    K_train = rbf_kernel(X_train, gamma=gamma)
+    K_test  = rbf_kernel(X_test, X_train, gamma=gamma)  # No debería de tener distinta gamma?
 
     # GridSearchCV over C
     if c_range is None:
