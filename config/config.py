@@ -12,3 +12,6 @@ N_POINTS = 20
 N_EPOCH = 30
 N_POPSIZE = 20
 N_PM = 0.1
+
+# ----- SAVING RESULTS -----
+RESULTS_DIR = 'Results'
