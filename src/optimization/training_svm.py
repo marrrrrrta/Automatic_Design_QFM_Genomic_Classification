@@ -37,7 +37,7 @@ def run_svm_prediction(
  
     # Grid search over C
     grid = GridSearchCV(
-        SVC(kernel='precomputed'), c_range, cv=cv,
+        SVC(kernel='precomputed', class_weight='balanced'), c_range, cv=cv,
         scoring='accuracy', refit=True,
     )
     grid.fit(K_train, y_train)
@@ -45,7 +45,7 @@ def run_svm_prediction(
     # Prediction
     y_pred = grid.best_estimator_.predict(K_test)
     accuracy = accuracy_score(y_test, y_pred)
-    report = classification_report(y_test, y_pred)
+    report = classification_report(y_test, y_pred, zero_division=0)
  
     results = {
         'name': name,

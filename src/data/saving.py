@@ -3,9 +3,9 @@ import pickle
 import numpy as np
 from datetime import datetime
 
-from config.config import RESULTS_DIR
 from ..circuit.candidates import Candidate
 
+RESULTS_DIR = 'Results'
 
 # -------- Internal helpers ------------------------------------------
 

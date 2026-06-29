@@ -1,14 +1,19 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 
 
 def preprocess(
     X: np.ndarray, y: np.ndarray, n_qubits: int
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
-    Preprocess a dataset by converting labels to {-1, 1}, splitting the data into training and test sets, applying PCA to reduce the features to ``n_qubits`` components, and scaling the features to the range [-1, 1].
+    Preprocesses a dataset for quantum kernel SVM: encodes labels, splits,
+    applies PCA, and scales features to [-1, 1].
+
+    Label encoding:
+        Binary     → {-1, +1}   (standard SVM convention)
+        Multi-class → {0, 1, …, n-1} 
 
     Args:
         X (np.ndarray): Feature matrix of shape (n_samples, n_features)
@@ -18,11 +23,17 @@ def preprocess(
     Returns:
         tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: X_train, X_test, y_train, y_test
     """    
-    # LABELS (Y)
-    y = 2 * y - 1  
+    # LABEL ENCODING (Y)
+    le = LabelEncoder()
+    y = le.fit_transform(y)
+    n_classes = len(le.classes_)
+
+    if n_classes == 2:
+        # Binary case
+        y = 2 * y - 1
 
     # Split train-test
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
 
     # FEATURES (X)
     # PCA to reduce the number of features
