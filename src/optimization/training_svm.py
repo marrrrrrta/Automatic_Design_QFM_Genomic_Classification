@@ -38,7 +38,7 @@ def run_svm_prediction(
     # Grid search over C
     grid = GridSearchCV(
         SVC(kernel='precomputed', class_weight='balanced'), c_range, cv=cv,
-        scoring='accuracy', refit=True,
+        scoring='balanced_accuracy', refit=True,
     )
     grid.fit(K_train, y_train)
  

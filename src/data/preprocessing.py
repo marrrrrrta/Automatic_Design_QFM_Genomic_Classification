@@ -3,9 +3,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 
+from config.config import TTS_SEED
 
 def preprocess(
-    X: np.ndarray, y: np.ndarray, n_qubits: int
+    X: np.ndarray, y: np.ndarray, 
+    n_qubits: int, tts_seed: int | None = TTS_SEED
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Preprocesses a dataset for quantum kernel SVM: encodes labels, splits,
@@ -33,7 +35,7 @@ def preprocess(
         y = 2 * y - 1
 
     # Split train-test
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=tts_seed, stratify=y)
 
     # FEATURES (X)
     # PCA to reduce the number of features

@@ -40,8 +40,8 @@ def classical_baseline(
         c_range = {'C': [0.1, 1, 10, 100, 1000]}
  
     grid = GridSearchCV(
-        SVC(kernel='precomputed'), c_range, cv=cv,
-        scoring='accuracy', refit=True,
+        SVC(kernel='precomputed', class_weight='balanced'), c_range, cv=cv,
+        scoring='balanced_accuracy', refit=True,
     )
     grid.fit(K_train, y_train)
  

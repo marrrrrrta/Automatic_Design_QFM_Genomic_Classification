@@ -17,7 +17,7 @@ def geometric_difference(K_classical, K_quantum, eps=1e-7):
 
     # Kernel matrices (with a small diagonal to avoid numerical singularity)
     Kc_inv = np.linalg.inv(K_classical + eps*np.eye(N)) 
-    sqrt_Kq = sqrtm(K_quantum)
+    sqrt_Kq = sqrtm(K_quantum + eps * np.eye(N)).real
 
     # Compute g
     M = sqrt_Kq @ Kc_inv @ sqrt_Kq

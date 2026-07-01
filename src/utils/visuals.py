@@ -1,7 +1,13 @@
 import matplotlib.pyplot as plt
+import pennylane as qml
 import numpy as np
+import os
+import matplotlib.patches as patches
 
+from src.circuit.analysis import collect_gate_grids, gate_consensus
 from src.data.saving import candidate_exists, load_parameter_train
+from src.circuit.building import build_circuit
+from src.circuit.candidates import Candidate
 
 RESULTS_DIR = 'Results'
 BASELINE = 'Classical_baseline'
@@ -29,8 +35,8 @@ def graph_subset(
     ax.set_ylabel('PC2')
     ax.set_title(f'{subset_name} Subset\n{count_str}', fontsize=10)
     ax.legend()
-    plt.savefig(f'{RESULTS_DIR}/graph_subset_{subset_name}.png')
     plt.tight_layout()
+    plt.savefig(f'{RESULTS_DIR}/graph_subset_{subset_name}.png')
     plt.show()
 
 # -------- KERNEL VISUALIZATION ------------------------------------------------
@@ -45,12 +51,179 @@ def graph_kernels(
     im2 = axes[1].imshow(K_quantum, cmap="viridis", vmin=0, vmax=1)
     axes[1].set_title(quantum_name)
     plt.colorbar(im2, ax=axes[1], label="Similarity")
-    plt.savefig(f'{RESULTS_DIR}/graph_{classical_name}_{quantum_name}.png')
     plt.tight_layout()
+    plt.savefig(f'{RESULTS_DIR}/graph_{classical_name}_{quantum_name}.png')
     plt.show()
 
+# -------- QUANTUM CIRCUIT VISUALIZATION ----------------------------------------
 
-# -------- VISUALIZATION OF RESULTS ------------------------------------------------
+def draw_kernel_circuit(
+    candidate: Candidate, x1: np.ndarray, x2: np.ndarray,
+    name: str | None = None, title: str | None = None,
+    decimals: int = 2, style: str | None = None, print_genes: bool = False,
+):
+    """
+    Draws the full fidelity kernel circuit U(x2)†U(x1)|0> exactly as it's
+    executed during training. Saves to Results/{name}/kernel_circuit.png if name is given.
+    """
+    dev = qml.device("default.qubit", wires=candidate.n_qubits)
+
+    @qml.qnode(dev)
+    def circuit(x1, x2, candidate):
+        build_circuit(candidate, x1)
+        qml.adjoint(build_circuit)(candidate, x2)
+        return qml.probs(wires=range(candidate.n_qubits))
+
+    fig, ax = qml.draw_mpl(circuit, decimals=decimals, style=style)(x1, x2, candidate)
+    title = title or name
+    if title:
+        (ax[0] if isinstance(ax, (list, np.ndarray)) else ax).set_title(title, fontsize=12, pad=12)
+    if print_genes:
+        print_gene_layout(candidate, label=title)
+    if name:
+        os.makedirs(f'{RESULTS_DIR}/{name}', exist_ok=True)
+        fig.savefig(f'{RESULTS_DIR}/{name}/kernel_circuit.png', dpi=150, bbox_inches='tight')
+    return fig, ax
+
+def print_gene_layout(candidate: Candidate, label: str | None = None):
+    """
+    Prints (layer, qubit, gate, angle) for every gene, in build_circuit's
+    raster order. Useful because Identity genes draw as nothing in qml.draw_mpl,
+    and a CNOT's target wire can pick up an extra box that doesn't map cleanly
+    to a single visual column.
+    """
+    header = f"Gene layout — {label}" if label else "Gene layout"
+    print(f"\n{header}")
+    print(f"{'gene':<6}{'layer':<7}{'qubit':<7}{'gate':<7}angle")
+    for i, gene in enumerate(candidate.genes):
+        layer, qubit = divmod(i, candidate.n_qubits)
+        info = gene.get_gene_info()
+        angle = info.get('angle', '—')
+        angle_str = f"{angle:.3f}" if isinstance(angle, (int, float)) else angle
+        print(f"g{i+1:<5}{layer:<7}{qubit:<7}{info['gate']:<7}{angle_str}")
+
+def draw_feature_map(
+    candidate: Candidate, x: np.ndarray,
+    name: str | None = None, title: str | None = None,
+    decimals: int = 2, style: str | None = None, print_genes: bool = True,
+):
+    """
+    Draws the feature map U(x)|0> for one candidate using PennyLane's
+    native matplotlib drawer. Saves to Results/{name}/feature_map.png if name is given.
+    """
+    dev = qml.device("default.qubit", wires=candidate.n_qubits)
+
+    @qml.qnode(dev)
+    def circuit(x, candidate):
+        build_circuit(candidate, x)
+        return qml.state()
+
+    fig, ax = qml.draw_mpl(circuit, decimals=decimals, style=style)(x, candidate)
+    title = title or name
+    if title:
+        (ax[0] if isinstance(ax, (list, np.ndarray)) else ax).set_title(title, fontsize=12, pad=12)
+    if print_genes:
+        print_gene_layout(candidate, label=title)
+    if name:
+        os.makedirs(f'{RESULTS_DIR}/{name}', exist_ok=True)
+        fig.savefig(f'{RESULTS_DIR}/{name}/feature_map.png', dpi=150, bbox_inches='tight')
+    return fig, ax
+
+
+GATE_COLORS = {
+    'H': 'lightsteelblue', 'CNOT': 'coral',
+    'RX': 'mediumseagreen', 'RY': 'mediumseagreen', 'RZ': 'mediumseagreen',
+    'I': 'lightgray',
+}
+
+def _draw_grid(ax, n_qubits, n_layers, cell_fn):
+    """Shared grid scaffolding; cell_fn(ax, layer, qubit, y) draws one cell."""
+    for layer in range(n_layers):
+        for qubit in range(n_qubits):
+            y = n_qubits - 1 - qubit
+            cell_fn(ax, layer, qubit, y)
+    ax.set_xlim(0, n_layers); ax.set_ylim(0, n_qubits)
+    ax.set_xticks(np.arange(n_layers) + 0.5)
+    ax.set_xticklabels([f"layer {i}" for i in range(n_layers)])
+    ax.set_yticks(np.arange(n_qubits) + 0.5)
+    ax.set_yticklabels([f"q{n_qubits - 1 - i}" for i in range(n_qubits)])
+    ax.set_aspect('equal')
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    ax.tick_params(length=0)
+
+
+def plot_gate_consensus(
+    consensus_gate: np.ndarray, agreement: np.ndarray,
+    n_qubits: int, n_layers: int,
+    title: str = 'Gate consensus across experiments',
+    save_path: str | None = None,
+):
+    """
+    Plots the most common gate type per (layer, qubit) position across a
+    set of experiments. Cell opacity encodes agreement strength —
+    faint = contested position, solid = strong consensus.
+    """
+    fig, ax = plt.subplots(figsize=(n_layers * 1.6, n_qubits * 1.1))
+
+    def draw_cell(ax, layer, qubit, y):
+        gate = consensus_gate[layer, qubit]
+        agree = agreement[layer, qubit]
+        color = GATE_COLORS.get(gate, 'white')
+        alpha = 0.3 + 0.7 * agree
+        rect = patches.FancyBboxPatch(
+            (layer + 0.05, y + 0.05), 0.9, 0.9,
+            boxstyle="round,pad=0.02,rounding_size=0.05",
+            facecolor=color, edgecolor='black', linewidth=0.8, alpha=alpha,
+        )
+        ax.add_patch(rect)
+        ax.text(layer + 0.5, y + 0.58, gate, ha='center', va='center', fontsize=10, fontweight='bold')
+        ax.text(layer + 0.5, y + 0.30, f"{agree:.0%} agree", ha='center', va='center', fontsize=7.5, color='dimgray')
+
+    _draw_grid(ax, n_qubits, n_layers, draw_cell)
+    ax.set_title(title, fontsize=11)
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+    return fig, ax
+
+
+def plot_gate_diff(
+    name_a: str, name_b: str, n_qubits: int, n_layers: int,
+    save_path: str | None = None,
+):
+    """
+    Compares two saved candidates position-by-position. Green = same gate
+    type at that position, coral = diverged.
+    """
+    grids = collect_gate_grids([name_a, name_b], n_qubits, n_layers)
+    grid_a, grid_b = grids[name_a], grids[name_b]
+    fig, ax = plt.subplots(figsize=(n_layers * 1.6, n_qubits * 1.1))
+
+    def draw_cell(ax, layer, qubit, y):
+        ga, gb = grid_a[layer, qubit], grid_b[layer, qubit]
+        same = ga == gb
+        color = 'mediumseagreen' if same else 'coral'
+        label = ga if same else f"{ga} / {gb}"
+        rect = patches.FancyBboxPatch(
+            (layer + 0.05, y + 0.05), 0.9, 0.9,
+            boxstyle="round,pad=0.02,rounding_size=0.05",
+            facecolor=color, edgecolor='black', linewidth=0.8, alpha=0.55,
+        )
+        ax.add_patch(rect)
+        ax.text(layer + 0.5, y + 0.5, label, ha='center', va='center', fontsize=9)
+
+    _draw_grid(ax, n_qubits, n_layers, draw_cell)
+    n_same = sum(grid_a[l, q] == grid_b[l, q] for l in range(n_layers) for q in range(n_qubits))
+    ax.set_title(f"{name_a}  vs  {name_b}   ({n_same}/{n_layers*n_qubits} positions match)", fontsize=10.5)
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+    return fig, ax
+
+# -------- RESULTS VISUALIZATION ------------------------------------------------
 
 def plot_accuracy(summary: dict) -> None:
     """Grouped bar chart: test accuracy vs CV accuracy for every experiment."""
