@@ -225,8 +225,13 @@ def plot_gate_diff(
 
 # -------- RESULTS VISUALIZATION ------------------------------------------------
 
-def plot_accuracy(summary: dict) -> None:
-    """Grouped bar chart: test accuracy vs CV accuracy for every experiment."""
+def plot_accuracy(summary: dict, columns) -> None:
+    """
+    Grouped bar chart: test accuracy vs CV accuracy for every experiment.
+    Args:
+        summary (dict): data to plot
+        options (array): choose which columns to plot. available: ['test', 'CV']
+    """
     names     = list(summary.keys())
     test_acc  = [s['accuracy'] for s in summary.values()]
     cv_acc    = [s['cv_acc']   for s in summary.values()]
@@ -234,19 +239,19 @@ def plot_accuracy(summary: dict) -> None:
  
     x, w = np.arange(len(names)), 0.38
     fig, ax = plt.subplots(figsize=(13, 5))
- 
-    b1 = ax.bar(x - w/2, test_acc, w, label='Test accuracy', color='steelblue')
-    b2 = ax.bar(x + w/2, cv_acc,   w, label='CV accuracy',   color='coral', alpha=0.85)
+    if 'test' in columns:
+        b1 = ax.bar(x - w/2, test_acc, w, label='Test accuracy', color='steelblue')
+        ax.bar_label(b1, fmt='%.3f', fontsize=7.5, padding=2)
+    if 'CV' in columns:
+        b2 = ax.bar(x + w/2, cv_acc,   w, label='CV accuracy',   color='coral', alpha=0.85)
+        ax.bar_label(b2, fmt='%.3f', fontsize=7.5, padding=2)
     ax.axhline(baseline, color='grey', linestyle='--', linewidth=1, label=f'Baseline ({baseline:.3f})')
- 
-    ax.bar_label(b1, fmt='%.3f', fontsize=7.5, padding=2)
-    ax.bar_label(b2, fmt='%.3f', fontsize=7.5, padding=2)
  
     ax.set_xticks(x)
     ax.set_xticklabels(names, rotation=28, ha='right', fontsize=9)
     ax.set_ylim(max(0, min(test_acc + cv_acc) - 0.08), 1.05)
     ax.set_ylabel('Accuracy')
-    ax.set_title('Experiment comparison — test vs CV accuracy')
+    ax.set_title('Experiment accuracies')
     ax.legend(fontsize=9)
  
     plt.tight_layout()

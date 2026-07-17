@@ -11,10 +11,12 @@ The basic structure of the simulation script is as follows:
 ```python
 # ── 0. Imports ─────────────────────────────────────────────────────────────────
 import numpy as np
-
+from sklearn.datasets import load_breast_cancer
+ 
 from config.config import N_QUBITS, N_LAYERS, N_POINTS, N_TRIALS, N_EPOCH, N_POPSIZE, N_PM, SEED
 from config.experiments import ExperimentConfig
  
+from src.circuit.analysis import collect_gate_grids, gate_consensus
 from src.data.preprocessing import preprocess
 import src.data.saving as saving
 from src.data.saving import candidate_exists, svm_exists, load_parameter_train, load_svm_results
@@ -23,6 +25,10 @@ from src.optimization.pipeline import get_candidate, get_svm_results
 from src.optimization.classical_base import classical_baseline
 import src.utils.visuals as visuals
 from src.utils.visuals import plot_accuracy, plot_g_best, plot_kernel_heatmaps
+from src.utils.visuals import draw_kernel_circuit, draw_feature_map, plot_gate_consensus, plot_gate_diff
+
+from src.data.subsets import subset_random, subset_nystrom_global, subset_nystrom_stratified
+from src.utils.visuals import graph_subset
 
 # ── 1. Data ────────────────────────────────────────────────────────────────────
 
@@ -117,19 +123,19 @@ for config in EXPERIMENTS:
  
 def print_summary(summary: dict) -> None:
     W = 32
-    print(f"\n{'═' * 68}")
+    print(f"\n{'═' * 75}")
     print(f"  {'EXPERIMENT':<{W}} {'TEST ACC':>9} {'CV ACC':>9} {'g_best':>9} {'best C':>6}")
-    print(f"{'─' * 68}")
+    print(f"{'─' * 75}")
     for name, s in summary.items():
         g = f"{s['g_best']:9.2f}" if not np.isnan(s['g_best']) else f"{'—':>9}"
         print(f"  {name:<{W}} {s['accuracy']:>9.4f} {s['cv_acc']:>9.4f} {g} {s['best_C']:>6}")
-    print(f"{'═' * 68}\n")
+    print(f"{'═' * 75}\n")
  
 print_summary(summary)
 
 # ── 5. Visualizations ──────────────────────────────────────────────────────────
 
-plot_accuracy(summary)
+plot_accuracy(summary, ['test', 'CV'])
 plot_g_best(summary)
 plot_kernel_heatmaps(summary, max_show=3)
 ```

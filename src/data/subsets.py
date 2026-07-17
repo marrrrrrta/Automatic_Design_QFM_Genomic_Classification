@@ -3,7 +3,7 @@ from sklearn.metrics.pairwise import rbf_kernel
 
 def subset_random(
     X_train: np.ndarray, y_train: np.ndarray, 
-    n_sample: int, seed: int | None = None
+    n_sample: int, seed: int | None = None, n_qubits = None
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Generates a random subset
