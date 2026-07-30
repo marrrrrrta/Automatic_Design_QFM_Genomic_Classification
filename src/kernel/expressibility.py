@@ -3,6 +3,7 @@ import pennylane as qml
 
 from ..circuit.building import build_circuit_params
 from .quantum_kernel import quantum_kernel
+from .haar import sample_haar_fidelities
 
 def _fidelity_circuit(n_qubits):
     dev = qml.device("default.qubit", wires=n_qubits)
@@ -10,7 +11,7 @@ def _fidelity_circuit(n_qubits):
 
     def circuit(theta_a, theta_b, candidate):
         build_circuit_params(candidate, theta_a)
-        qml.adjoint(build_circuit_params)(candidate, theta_b)
+        qml.adjoint(build_circuit_params)(candidate, theta_b)  # type: ignore[reportCallIssue]
         return qml.probs(wires=range(n_qubits))
     return circuit
 
@@ -48,23 +49,17 @@ def sample_fidelities(
 
 
 def expressibility(
-    candidate, n_qubits, 
-    n_samples=2000, n_bins=75, seed=None,
+    candidate, n_qubits, n_samples=2000, n_bins=75, seed=None,
     sample_mode='uniform', X=None
 ):
-    """
-    KL divergence between the candidate's fidelity distribution and the
-    analytic Haar fidelity distribution. Lower = more expressive.
-    """
-    N = 2 ** n_qubits
-    fids = sample_fidelities(candidate, n_qubits, n_samples, seed, sample_mode, X)   # ← add X here
+    fids_circuit = sample_fidelities(candidate, n_qubits, n_samples, seed, sample_mode, X)
+    fids_haar    = sample_haar_fidelities(n_qubits, n_samples, seed)   # literal Haar samples
 
     bin_edges = np.linspace(0, 1, n_bins + 1)
-    p_circuit, _ = np.histogram(fids, bins=bin_edges, density=False)
+    p_circuit, _ = np.histogram(fids_circuit, bins=bin_edges)
     p_circuit = p_circuit / p_circuit.sum()
 
-    centers = (bin_edges[:-1] + bin_edges[1:]) / 2
-    p_haar = (N - 1) * (1 - centers) ** (N - 2)
+    p_haar, _ = np.histogram(fids_haar, bins=bin_edges)
     p_haar = p_haar / p_haar.sum()
 
     eps = 1e-10
