@@ -2,6 +2,7 @@ import numpy as np
  
 from config.experiments import ExperimentConfig
 from .training_candidate import train_candidate_optuna, train_candidate_mealpy
+from .training_candidate import train_candidate_optuna_haar, train_candidate_mealpy_haar
 from .training_svm import run_svm_prediction
 from ..data.saving import (
     candidate_exists, svm_exists,
@@ -18,8 +19,10 @@ _SUBSET_METHODS = {
 }
  
 _TRAIN_FUNCTIONS = {
-    'optuna': train_candidate_optuna,
-    'mealpy': train_candidate_mealpy,
+    ('optuna', 'geometric'): train_candidate_optuna,
+    ('mealpy', 'geometric'): train_candidate_mealpy,
+    ('optuna', 'haar'):      train_candidate_optuna_haar,
+    ('mealpy', 'haar'):      train_candidate_mealpy_haar,
 }
 
 # -------- PIPELINE ------------------------------------------------------------------------
@@ -63,7 +66,7 @@ def get_candidate(
     _, X_sub, y_sub = subset_fn(X_train, y_train, **config.subset_kwargs)
  
     # Train
-    train_fn = _TRAIN_FUNCTIONS[config.optimizer]
+    train_fn = _TRAIN_FUNCTIONS[(config.optimizer, config.variant)]
     _, candidate, K_q, K_c = train_fn(config.name, X_sub, y_sub, **config.optimizer_kwargs)
  
     return candidate, K_q, K_c, X_sub, y_sub

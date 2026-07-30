@@ -12,6 +12,10 @@ TTS_SEED = 42
 SEED = 50
 N_POINTS = 20 
 
+N_HAAR_SAMPLES = 2000
+N_HAAR_BINS    = 75
+LAMBDA_HAAR    = 1.0
+
 # --------- Optuna parameters -------------------------------------
 N_TRIALS = 100
 

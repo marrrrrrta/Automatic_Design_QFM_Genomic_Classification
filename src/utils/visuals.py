@@ -312,3 +312,27 @@ def plot_kernel_heatmaps(summary: dict, max_show: int = 3) -> None:
     plt.savefig(f'{RESULTS_DIR}/kernel_heatmaps.png', dpi=150, bbox_inches='tight')
     plt.show()
     print(f"Saved → {RESULTS_DIR}/kernel_heatmaps.png")
+
+## OPTION 2
+
+def plot_expressibility(summary: dict) -> None:
+    """Horizontal bar chart of expressibility (KL divergence vs. Haar) —
+    Haar-variant experiments only. Lower KL = more expressive/Haar-like."""
+    haar = {k: v for k, v in summary.items() if not np.isnan(v.get('kl_haar', float('nan')))}
+    if not haar:
+        return
+
+    names  = list(haar.keys())
+    values = [v['kl_haar'] for v in haar.values()]
+
+    fig, ax = plt.subplots(figsize=(8, max(3, len(names) * 0.55)))
+    bars = ax.barh(names, values, color='mediumpurple', alpha=0.85)
+    ax.bar_label(bars, fmt='%.3f', padding=4, fontsize=8)
+    ax.set_xlabel('KL divergence vs. Haar  (lower = more expressive)')
+    ax.set_title('Circuit expressibility per experiment')
+    ax.invert_yaxis()
+
+    plt.tight_layout()
+    plt.savefig(f'{RESULTS_DIR}/expressibility_comparison.png', dpi=150)
+    plt.show()
+    print(f"Saved → {RESULTS_DIR}/expressibility_comparison.png")
