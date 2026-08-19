@@ -75,7 +75,7 @@ def train_candidate_optuna_haar(
 ) -> tuple[float, OptunaCandidate, np.ndarray, np.ndarray]:
 
     # Train (Minimize KL divergence — lower = more expressive)
-    study = optuna.create_study(direction="minimize")
+    study = optuna.create_study(direction="maximize")
     study.optimize(objective_optuna_generator_haar(X_subset, sample_mode), n_trials=n_trials)
 
     # Extract best candidate
@@ -86,6 +86,7 @@ def train_candidate_optuna_haar(
     # Quantum and Classical kernels
     K_quantum_best = quantum_kernel_matrix(X_subset, best_candidate)
     K_classical = rbf_kernel(X_subset, gamma=1.0 / (n_qubits * X_subset.var()))
+
 
     # NOTE: the saved "g_best" now holds a KL divergence, not a geometric difference — relabel accordingly wherever it's plotted downstream.
     save_parameter_train(subset_type, best_candidate, study.best_value, K_quantum_best, K_classical, X_subset, y_subset)
@@ -104,7 +105,7 @@ def train_candidate_mealpy_haar(
     problem = {
         'obj_func': objective_mealpy_generator_haar(X_subset, sample_mode),
         'bounds': BinaryVar(n_vars=n_qubits * n_layers * 5),
-        'minmax': 'min',   # minimize KL divergence
+        'minmax': 'max',   # maximize KL divergence
     }
 
     # Run optimizer
