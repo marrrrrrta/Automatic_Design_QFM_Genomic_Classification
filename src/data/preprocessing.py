@@ -10,8 +10,7 @@ def preprocess(
     n_qubits: int, tts_seed: int | None = TTS_SEED
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
-    Preprocesses a dataset for quantum kernel SVM: encodes labels, splits,
-    applies PCA, and scales features to [-1, 1].
+    Preprocesses a dataset for quantum kernel SVM: encodes labels, splits, applies PCA, and scales features to [-1, 1].
 
     Label encoding:
         Binary     → {-1, +1}   (standard SVM convention)
@@ -27,7 +26,7 @@ def preprocess(
     """    
     # LABEL ENCODING (Y)
     le = LabelEncoder()
-    y = le.fit_transform(y)
+    y = le.fit_transform(y) # pyright: ignore[reportAssignmentType]
     n_classes = len(le.classes_)
 
     if n_classes == 2:
@@ -48,4 +47,11 @@ def preprocess(
     X_train = scaler.transform(X_train)
     X_test  = scaler.transform(X_test)
 
+    return X_train, X_test, y_train, y_test
+
+
+def preprocess_synthetic(X, y, tts_seed=TTS_SEED):
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.3, random_state=tts_seed, stratify=y
+    )
     return X_train, X_test, y_train, y_test

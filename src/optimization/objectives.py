@@ -1,21 +1,23 @@
 from sklearn.metrics.pairwise import rbf_kernel
 import numpy as np
 import optuna
+import pennylane as qml
 from typing import Callable
 
-from config.config import N_QUBITS, N_LAYERS, N_HAAR_SAMPLES, N_HAAR_BINS
+from config.config import N_QUBITS, N_LAYERS
 from ..circuit.candidates import OptunaCandidate, MealpyCandidate
 from ..kernel.quantum_kernel import quantum_kernel_matrix
 from ..kernel.metrics import geometric_difference
-from ..kernel.expressibility import expressibility
+from ..kernel.haar import haar_random_unitary
 
-from ..kernel.metrics import geometric_difference
 
-def objective_optuna_generator(X: np.ndarray
+# –––– OPTION 1: RANDOM DISTRIBUTION (RD) ––––––––––––––––
+
+def objective_optuna_generator_RD(X: np.ndarray
 ) -> Callable[[optuna.Trial], float]:
     """
-    Returns an Optuna objective over a given subset
-
+    Returns an Optuna objective over a given subset.
+    Uses a random distribution to sample candidates from the search space.
     Args:
         X: (n, d) subset of training points
     """    
@@ -49,11 +51,11 @@ def objective_optuna_generator(X: np.ndarray
         return g
     return objective
 
-def objective_mealpy_generator(X: np.ndarray
+def objective_mealpy_generator_RD(X: np.ndarray
 ) -> Callable[[np.ndarray], float]:
     """
     Returns a Mealpy objective over a given subset
-
+    Uses a random distribution to sample candidates from the search space.
     Args:
         X: (n, d) subset of training points
     """    
@@ -79,54 +81,67 @@ def objective_mealpy_generator(X: np.ndarray
     return objective
 
 
-## OPTION 2: HAAR DISTRIBUTION
-def objective_optuna_generator_haar(
-    X: np.ndarray, sample_mode: str = 'data'
+# –––– OPTION 2: HAAR DISTRIBUTION (HD) ––––––––––––––––––
+
+def _haar_angle() -> float:
+    """One rotation angle sampled from Haar-random single-qubit unitary.
+    From 'The Haar Measure' tutorial
+
+    NOTE: qml.Rot(phi, theta, omega) = RZ(omega) · RY(theta) · RZ(phi)
+          I extracted theta, which is from [0,π), but i'm not sure yet
+    """
+    mat = haar_random_unitary(2)
+    op = qml.ops.one_qubit_decomposition(mat, wire=0, rotations="rot")
+    return float(op[0].parameters[1]) 
+
+
+def objective_optuna_generator_HD(
+    X: np.ndarray
 ) -> Callable[[optuna.Trial], float]:
     """
-    Optuna objective scored by expressibility (KL divergence vs. the Haar fidelity distribution) instead of geometric difference.
-    Lower KL = closer to Haar-random = more expressible.
-    CHANGED***
-    """
+    Returns an Optuna objective over a given subset
+    Uses the Haar distribution to sample from 
+    Args:
+        X: (n, d) subset of training points
+    """   
+    # Redefine gamma and classical kernel
     gamma = 1.0 / (N_QUBITS * X.var())
     K_classical = rbf_kernel(X, gamma=gamma)
 
     def objective(trial):
+        """
+        Objective function for Optuna optimization.
+        Optuna will suggest one gate (categorical) and one angle (float) per gene
+        """  
+        # Create a new candidate with its set of genes
         gates, angles = [], []
         for i in range(N_QUBITS * N_LAYERS):
             gate = trial.suggest_categorical(f"gate_{i}", ["H", "CNOT", "RX", "RY", "RZ", "I"])
             gates.append(gate)
-            angle = trial.suggest_float(f"angle_{i}", 0, 2 * np.pi)
-            angles.append(angle)
+            # Now, sampled from the Haar distribution, not optuna suggest
+            # NOTE: this way optuna never learns. the input is always random
+            angles.append(_haar_angle())
 
+        # Define the candidate
         candidate = OptunaCandidate(N_QUBITS, N_LAYERS, gates, angles)
-        K_quantum = quantum_kernel_matrix(X, candidate)
-        g = geometric_difference(K_classical, K_quantum)
 
-        # optional: log KL for this trial without letting it drive the search
-        kl = expressibility(candidate, N_QUBITS, n_samples=N_HAAR_SAMPLES,
-                             n_bins=N_HAAR_BINS, sample_mode=sample_mode, X=X)
-        trial.set_user_attr("kl_haar", kl)
+        # Compute quantum kernel matrix
+        K_quantum = quantum_kernel_matrix(X, candidate)
+
+        # Compute geometric difference
+        g = geometric_difference(K_classical, K_quantum)
 
         return g
     return objective
 
-
-def objective_mealpy_generator_haar(
-    X: np.ndarray, sample_mode: str = 'data'
+    
+def objective_mealpy_generator_HD(
+    X: np.ndarray
 ) -> Callable[[np.ndarray], float]:
     """
-    Mealpy objective: fitness = KL divergence vs. Haar.
+    Returns a Mealpy objective over a given subset
+    Uses the Haar distribution to sample from
+    Args:
+        X: (n, d) subset of training points
     """
-    def objective(solution):
-        # Define the candidate
-        candidate = MealpyCandidate(N_QUBITS, N_LAYERS, solution)
-
-        # Compute expressibility
-        kl = expressibility(
-            candidate, N_QUBITS,
-            n_samples=N_HAAR_SAMPLES, n_bins=N_HAAR_BINS,
-            sample_mode=sample_mode, X=X,
-        )
-        return kl
-    return objective
+    ...

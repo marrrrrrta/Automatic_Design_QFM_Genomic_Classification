@@ -41,7 +41,8 @@ def graph_subset(
 def graph_dataset(
     dataset_name: str,
     X: np.ndarray, y: np.ndarray,
-    X_train : np.ndarray, y_train: np.ndarray
+    X_train : np.ndarray | None = None, y_train: np.ndarray | None = None,
+    save: str | None = None,
 ):
     """
     Graph of a dataset, in the same style the subsets are plotted
@@ -52,15 +53,17 @@ def graph_dataset(
     _, ax = plt.subplots(figsize=(6, 4))
     ax.scatter(X[:, 0], X[:, 1],
             c=y, cmap='coolwarm', alpha=0.30, s=20, label='All points')
-    ax.scatter(X_train[:, 0], X_train[:, 1],
-            c=y_train, cmap='coolwarm',
-            edgecolors='black', linewidths=1.2, s=90, zorder=5, label='Training points')
+    if X_train is not None and y_train is not None:
+        ax.scatter(X_train[:, 0], X_train[:, 1],
+                c=y_train, cmap='coolwarm',
+                edgecolors='black', linewidths=1.2, s=90, zorder=5, label='Training points')
     ax.set_xlabel('PC1')
     ax.set_ylabel('PC2')
-    ax.set_title(f'{dataset_name} Subset\n{count_str}', fontsize=10)
+    ax.set_title(f'{dataset_name} Dataset\n{count_str}', fontsize=10)
     ax.legend()
     plt.tight_layout()
-    plt.savefig(f'{RESULTS_DIR}/graph_dataset_{dataset_name}.png')
+    if save:
+        plt.savefig(f'{RESULTS_DIR}/graph_dataset_{dataset_name}.png')
     plt.show()
 
 # -------- KERNEL VISUALIZATION ------------------------------------------------
@@ -128,7 +131,7 @@ def plot_g_best(summary: dict) -> None:
     bars = ax.barh(names, values, color='mediumseagreen', alpha=0.85)
     ax.bar_label(bars, fmt='%.2f', padding=4, fontsize=8)
     ax.set_xlabel('g_best  (geometric difference vs RBF)')
-    ax.set_title('Quantum kernel expressibility per experiment')
+    ax.set_title('Geometric difference per experiment')
     ax.invert_yaxis()
  
     plt.tight_layout()

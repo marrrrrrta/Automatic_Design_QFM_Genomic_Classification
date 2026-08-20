@@ -16,6 +16,7 @@ _SUBSET_METHODS = {
     'random':              subset_random,
     'nystrom_global':      subset_nystrom_global,
     'nystrom_stratified':  subset_nystrom_stratified,
+    'none':                None,
 }
  
 _TRAIN_FUNCTIONS = {
@@ -62,8 +63,11 @@ def get_candidate(
         )
  
     # Build subset
-    subset_fn = _SUBSET_METHODS[config.subset_method]
-    _, X_sub, y_sub = subset_fn(X_train, y_train, **config.subset_kwargs)
+    if _SUBSET_METHODS[config.subset_method] is None:
+        X_sub, y_sub = X_train, y_train
+    else:
+        subset_fn = _SUBSET_METHODS[config.subset_method]
+        _, X_sub, y_sub = subset_fn(X_train, y_train, **config.subset_kwargs)
  
     # Train
     train_fn = _TRAIN_FUNCTIONS[(config.optimizer, config.variant)]
