@@ -117,6 +117,63 @@ def ModHav_synthetic_dataset(
     
     return np.array(X), np.array(y)
 
+
+# –––– Claude –––––––––––––––––––––––––––––––––––––––––––––
+def KernelGap_synthetic_dataset(
+    n_per_class: dict | int = 20, n_qubits = N_QUBITS, reps: int = 2,
+    pool_size: int | None = None, seed: int | None = None
+):
+    """
+    Labels points using the leading eigenvector of a fixed, entangling quantum
+    kernel (reps=2 -> classically harder to simulate, same idea as Havlicek's
+    circuit but repeated). Because the label rule only exists in that kernel's
+    own eigenstructure, a classical kernel (RBF) with a different eigenstructure
+    should have a much larger geometric difference (g_CQ) here than on a
+    generic dataset -- i.e. it should genuinely struggle where the quantum
+    kernel built from the same feature map will not.
+    """
+    rng = np.random.default_rng(seed)
+    dev = qml.device("default.qubit", wires=n_qubits)
+
+    if isinstance(n_per_class, int):
+        n_per_class = {1: n_per_class, -1: n_per_class}
+    if pool_size is None:
+        pool_size = 8 * (n_per_class[1] + n_per_class[-1])  # oversample, keep the most confident points
+
+    def feature_map(x):
+        """Entangling feature map (Havlicek-style), repeated `reps` times for classical hardness."""
+        for _ in range(reps):
+            for i in range(n_qubits):
+                qml.Hadamard(wires=i)
+                qml.RZ(2 * x[i], wires=i)
+            for i in range(n_qubits):
+                for j in range(i + 1, n_qubits):
+                    qml.CNOT(wires=[i, j])
+                    qml.RZ(2 * (np.pi - x[i]) * (np.pi - x[j]), wires=j)
+                    qml.CNOT(wires=[i, j])
+
+    @qml.qnode(dev)
+    def get_state(x):
+        feature_map(x)
+        return qml.state()
+
+    # Pool of candidate points and their quantum kernel matrix
+    X_pool = rng.uniform(0, 2 * np.pi, size=(pool_size, n_qubits))
+    states = np.array([get_state(x) for x in X_pool])
+    K_q = np.abs(states.conj() @ states.T) ** 2
+
+    # Label rule: sign of the leading eigenvector of K_q
+    _, eigvecs = np.linalg.eigh(K_q)
+    v = eigvecs[:, -1] - np.median(eigvecs[:, -1])
+
+    # Keep only the most confidently-labeled points on each side
+    keep_pos = np.argsort(-v)[:n_per_class[1]]
+    keep_neg = np.argsort(v)[:n_per_class[-1]]
+
+    X = np.concatenate([X_pool[keep_pos], X_pool[keep_neg]])
+    y = np.concatenate([np.ones(len(keep_pos)), -np.ones(len(keep_neg))])
+    return X, y
+
 if __name__ == "__main__":
     X, y = Havlicek_synthetic_dataset(seed=45)
     graph_dataset("Havlicek, even", X, y)

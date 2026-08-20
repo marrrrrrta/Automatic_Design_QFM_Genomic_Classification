@@ -122,6 +122,9 @@ def objective_optuna_generator_HD(
             # NOTE: this way optuna never learns. the input is always random
             angles.append(_haar_angle())
 
+        # save angles used
+        trial.set_user_attr("angles", angles)
+        
         # Define the candidate
         candidate = OptunaCandidate(N_QUBITS, N_LAYERS, gates, angles)
 

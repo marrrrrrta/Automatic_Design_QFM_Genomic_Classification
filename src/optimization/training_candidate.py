@@ -56,7 +56,7 @@ def train_candidate_mealpy(
     optimizer.solve(problem)
  
     # Extract best candidate
-    best_bitstring = optimizer.g_best.solution
+    best_bitstring = optimizer.g_best.solution # pyright: ignore[reportOptionalMemberAccess]
     best_candidate = MealpyCandidate(n_qubits, n_layers, best_bitstring)
  
     # New quantum and classical kernels
@@ -64,9 +64,9 @@ def train_candidate_mealpy(
     K_classical = rbf_kernel(X_subset, gamma= 1.0 / (n_qubits * X_subset.var()))
  
     # Save results
-    save_parameter_train(subset_type, best_candidate, optimizer.g_best.target.fitness, K_quantum_best, K_classical, X_subset, y_subset)
+    save_parameter_train(subset_type, best_candidate, optimizer.g_best.target.fitness, K_quantum_best, K_classical, X_subset, y_subset) # pyright: ignore[reportOptionalMemberAccess, reportArgumentType]
  
-    return optimizer.g_best.target.fitness, best_candidate, K_quantum_best, K_classical
+    return optimizer.g_best.target.fitness, best_candidate, K_quantum_best, K_classical # pyright: ignore[reportOptionalMemberAccess]
 
 
 
@@ -83,19 +83,14 @@ def train_candidate_optuna_haar(
     study.optimize(objective_optuna_generator_HD(X_subset), n_trials=n_trials)
 
     # Extract best candidate
-    # Note: angles are NOT in study.best_params because they're sampled from Haar distribution
-    # during objective evaluation, not suggested to Optuna. Regenerate them here.
-    from .objectives import _haar_angle
     best_gates = [study.best_params[f"gate_{i}"] for i in range(n_qubits * n_layers)]
-    best_angles = [_haar_angle() for i in range(n_qubits * n_layers)]
+    best_angles = study.best_trial.user_attrs["angles"] 
     best_candidate = OptunaCandidate(n_qubits, n_layers, best_gates, best_angles)
 
     # Quantum and Classical kernels
     K_quantum_best = quantum_kernel_matrix(X_subset, best_candidate)
     K_classical = rbf_kernel(X_subset, gamma=1.0 / (n_qubits * X_subset.var()))
-
-
-    # NOTE: the saved "g_best" now holds a KL divergence, not a geometric difference — relabel accordingly wherever it's plotted downstream.
+    
     save_parameter_train(subset_type, best_candidate, study.best_value, K_quantum_best, K_classical, X_subset, y_subset)
 
     return study.best_value, best_candidate, K_quantum_best, K_classical
