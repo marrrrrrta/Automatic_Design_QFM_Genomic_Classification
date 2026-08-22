@@ -120,63 +120,64 @@ def ModHav_synthetic_dataset(
 
 # –––– Claude –––––––––––––––––––––––––––––––––––––––––––––
 def KernelGap_synthetic_dataset(
-    n_per_class: dict | int = 20, n_qubits = N_QUBITS, reps: int = 2,
-    pool_size: int | None = None, seed: int | None = None
+    n_per_class: dict | int = 20, n_qubits = N_QUBITS, n_layers = N_LAYERS,
+    pool_size: int | None = None, seed: int | None = None, skipfactor: int = 4
 ):
     """
-    Labels points using the leading eigenvector of a fixed, entangling quantum
-    kernel (reps=2 -> classically harder to simulate, same idea as Havlicek's
-    circuit but repeated). Because the label rule only exists in that kernel's
-    own eigenstructure, a classical kernel (RBF) with a different eigenstructure
-    should have a much larger geometric difference (g_CQ) here than on a
-    generic dataset -- i.e. it should genuinely struggle where the quantum
-    kernel built from the same feature map will not.
+    v2: labels come from the leading eigenvector of a kernel built by a
+    RANDOM CANDIDATE FROM THE SAME SEARCH SPACE ADQFM actually explores
+    (n_qubits x n_layers, same gate set) -- not an arbitrary deep circuit
+    outside that space. v1 used a fully-entangling Havlicek-style circuit
+    no search candidate could get close to, so g_best stayed tiny regardless
+    of search quality.
     """
+    GATES = ("H", "CNOT", "RX", "RY", "RZ", "I")
+    ANGLES = (np.pi, np.pi / 2, np.pi / 4, np.pi / 8)
+
     rng = np.random.default_rng(seed)
     dev = qml.device("default.qubit", wires=n_qubits)
 
     if isinstance(n_per_class, int):
         n_per_class = {1: n_per_class, -1: n_per_class}
     if pool_size is None:
-        pool_size = 8 * (n_per_class[1] + n_per_class[-1])  # oversample, keep the most confident points
+        pool_size = 8 * (n_per_class[1] + n_per_class[-1])
 
-    def feature_map(x):
-        """Entangling feature map (Havlicek-style), repeated `reps` times for classical hardness."""
-        for _ in range(reps):
-            for i in range(n_qubits):
-                qml.Hadamard(wires=i)
-                qml.RZ(2 * x[i], wires=i)
-            for i in range(n_qubits):
-                for j in range(i + 1, n_qubits):
-                    qml.CNOT(wires=[i, j])
-                    qml.RZ(2 * (np.pi - x[i]) * (np.pi - x[j]), wires=j)
-                    qml.CNOT(wires=[i, j])
+    # Generating candidate: same family/shape the ADQFM search explores
+    gates = list(rng.choice(GATES, size=n_qubits * n_layers))
+    angles = list(rng.choice(ANGLES, size=n_qubits * n_layers))
+    gen_candidate = OptunaCandidate(n_qubits, n_layers, gates, angles)
 
     @qml.qnode(dev)
     def get_state(x):
-        feature_map(x)
+        build_circuit(gen_candidate, x)
         return qml.state()
 
-    # Pool of candidate points and their quantum kernel matrix
-    X_pool = rng.uniform(0, 2 * np.pi, size=(pool_size, n_qubits))
+    X_pool = rng.uniform(0, 2 * np.pi, size=(pool_size, n_qubits)) # type: ignore
     states = np.array([get_state(x) for x in X_pool])
     K_q = np.abs(states.conj() @ states.T) ** 2
 
-    # Label rule: sign of the leading eigenvector of K_q
-    _, eigvecs = np.linalg.eigh(K_q)
+    eigvals, eigvecs = np.linalg.eigh(K_q)
     v = eigvecs[:, -1] - np.median(eigvecs[:, -1])
 
-    # Keep only the most confidently-labeled points on each side
-    keep_pos = np.argsort(-v)[:n_per_class[1]]
-    keep_neg = np.argsort(v)[:n_per_class[-1]]
+    # If the top eigenvalue barely stands out, the "planted"
+    # direction is weak signal buried in noise -> try a different seed
+    gap = eigvals[-1] - eigvals[-2]
+    if gap < 0.05 * eigvals[-1]:
+        import warnings
+        warnings.warn(f"Leading eigenvalue gap is small ({gap:.4f}); try a different seed.")
+
+    # larger skip = harder task
+    skip = pool_size // skipfactor   # pyright: ignore[reportOptionalOperand] 
+    keep_pos = np.argsort(-v)[skip : skip + n_per_class[1]]
+    keep_neg = np.argsort(v)[skip : skip + n_per_class[-1]]
 
     X = np.concatenate([X_pool[keep_pos], X_pool[keep_neg]])
     y = np.concatenate([np.ones(len(keep_pos)), -np.ones(len(keep_neg))])
     return X, y
 
 if __name__ == "__main__":
-    X, y = Havlicek_synthetic_dataset(seed=45)
-    graph_dataset("Havlicek, even", X, y)
+    X, y = KernelGap_synthetic_dataset(seed=45)
+    graph_dataset("KernelGap, even", X, y)
 
-    X, y = Havlicek_synthetic_dataset(n_per_class={1:10, -1:30}, seed=45)
-    graph_dataset("Havlicek, uneven", X, y)
+    X, y = KernelGap_synthetic_dataset(n_per_class={1:10, -1:30}, seed=45)
+    graph_dataset("KernelGap, uneven", X, y)

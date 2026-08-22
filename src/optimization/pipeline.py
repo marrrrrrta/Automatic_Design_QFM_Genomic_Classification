@@ -3,6 +3,9 @@ import numpy as np
 from config.experiments import ExperimentConfig
 from .training_candidate import train_candidate_optuna, train_candidate_mealpy
 from .training_candidate import train_candidate_optuna_haar, train_candidate_mealpy_haar
+from .training_candidate import train_candidate_optuna_opt3
+from .training_candidate import train_candidate_optuna_kta, train_candidate_mealpy_kta
+
 from .training_svm import run_svm_prediction
 from ..data.saving import (
     candidate_exists, svm_exists,
@@ -24,6 +27,9 @@ _TRAIN_FUNCTIONS = {
     ('mealpy', 'geometric'): train_candidate_mealpy,
     ('optuna', 'haar'):      train_candidate_optuna_haar,
     ('mealpy', 'haar'):      train_candidate_mealpy_haar,
+    ('optuna', 'angles'):    train_candidate_optuna_opt3,
+    ('optuna', 'kta'):       train_candidate_optuna_kta,
+    ('mealpy', 'kta'):       train_candidate_mealpy_kta,
 }
 
 # -------- PIPELINE ------------------------------------------------------------------------

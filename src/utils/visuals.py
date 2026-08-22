@@ -105,10 +105,12 @@ def plot_accuracy(summary: dict, columns) -> None:
         b2 = ax.bar(x + w/2, cv_acc,   w, label='CV accuracy',   color='coral', alpha=0.85)
         ax.bar_label(b2, fmt='%.3f', fontsize=7.5, padding=2)
     ax.axhline(baseline, color='grey', linestyle='--', linewidth=1, label=f'Baseline ({baseline:.3f})')
+    ax.axhline(0.5, color='black', linestyle=':', linewidth=1, label='Random chance (0.5)')
  
     ax.set_xticks(x)
     ax.set_xticklabels(names, rotation=28, ha='right', fontsize=9)
-    ax.set_ylim(max(0, min(test_acc + cv_acc) - 0.08), 1.05)
+    #ax.set_ylim(max(0, min(test_acc + cv_acc) - 0.08), 1.05)
+    ax.set_ylim(0, 1.15)
     ax.set_ylabel('Accuracy')
     ax.set_title('Experiment accuracies')
     ax.legend(fontsize=9)

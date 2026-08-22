@@ -28,3 +28,14 @@ def geometric_difference(K_classical, K_quantum, eps=1e-7):
     max_eigenval_M = np.max(eigenval_M)
 
     return np.sqrt(np.maximum(max_eigenval_M, 0.0))
+
+
+def kernel_target_alignment(K: np.ndarray, y: np.ndarray) -> float:
+    """
+    Measures how well K's similarity structure matches the class labels y.
+    - Higher = better alignment with same-class vs different-class pairs
+    - Used to train the gate's angles
+    """
+    y = np.asarray(y).reshape(-1, 1)
+    yyT = y @ y.T
+    return float(np.sum(K * yyT) / (np.linalg.norm(K) * np.linalg.norm(yyT)))

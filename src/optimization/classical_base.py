@@ -68,3 +68,38 @@ def classical_baseline(
     print(report)
  
     return results
+
+def classical_benchmark(
+    X_train: np.ndarray, y_train: np.ndarray,
+    X_test: np.ndarray,  y_test: np.ndarray,
+    n_qubits: int = N_QUBITS,
+    c_range: dict | None = None,
+    cv: int = 5,
+    name: str = 'Classical_baseline',
+):
+    """
+    Trains an RBF-kernel SVM as a classical baseline. 
+    """
+    gamma = 1.0 / (n_qubits * X_train.var())
+    K_train = rbf_kernel(X_train, gamma=gamma)
+    K_test = rbf_kernel(X_test, X_train, gamma=gamma)
+
+    if c_range is None:
+        c_range = {'C': [0.1, 1, 10, 100, 1000]}
+    
+    grid = GridSearchCV(
+        SVC(kernel='precomputed', class_weight='balanced'), c_range, cv=cv,
+        scoring='balanced_accuracy', refit=True,
+    )
+    grid.fit(K_train, y_train)
+
+    y_pred   = grid.best_estimator_.predict(K_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    report   = classification_report(y_test, y_pred)
+
+    return {
+        'accuracy': accuracy,
+        'best_C': grid.best_params_['C'],
+        'best_cv_accuracy': grid.best_score_,
+        'report': report,
+    }
