@@ -12,7 +12,7 @@ dev = qml.device("default.qubit", wires=N_QUBITS)
 
 def quantum_kernel_circuit(x1: np.ndarray, x2: np.ndarray, candidate: Candidate):
     build_circuit(candidate, x1)
-    qml.adjoint(build_circuit)(candidate, x2)
+    qml.adjoint(build_circuit)(candidate, x2) # pyright: ignore[reportCallIssue]
     return qml.probs(wires=range(candidate.n_qubits))
 
 def quantum_kernel(x1: np.ndarray, x2: np.ndarray, candidate:Candidate

@@ -102,4 +102,5 @@ def classical_benchmark(
         'best_C': grid.best_params_['C'],
         'best_cv_accuracy': grid.best_score_,
         'report': report,
+        'y_pred': y_pred,
     }
