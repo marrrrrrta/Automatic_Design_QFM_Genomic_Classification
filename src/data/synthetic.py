@@ -135,7 +135,7 @@ def ModHav_synthetic_dataset(
 # –––– Claude –––––––––––––––––––––––––––––––––––––––––––––
 def KernelGap_synthetic_dataset(
     n_per_class: dict | int = 20, n_qubits = N_QUBITS, n_layers = N_LAYERS,
-    pool_size: int | None = None, seed: int | None = None, skipfactor: int = 4,
+    datapoints: int | None = None, seed: int | None = None, skipfactor: int = 4,
     gen_candidate: OptunaCandidate | None = None
 ):
     """
@@ -149,8 +149,8 @@ def KernelGap_synthetic_dataset(
 
     if isinstance(n_per_class, int):
         n_per_class = {1: n_per_class, -1: n_per_class}
-    if pool_size is None:
-        pool_size = 8 * (n_per_class[1] + n_per_class[-1])
+    if datapoints is None:
+        datapoints = 8 * (n_per_class[1] + n_per_class[-1])
 
     # Generate random candidate if none is provided
     if gen_candidate is None:
@@ -163,10 +163,15 @@ def KernelGap_synthetic_dataset(
         build_circuit(gen_candidate, x)
         return qml.state()
 
-    X_pool = rng.uniform(0, 2 * np.pi, size=(pool_size, n_qubits)) # type: ignore
+    # sample datapoints uniformly in [0, 2π]^n_qubits (no labels)
+    X_pool = rng.uniform(0, 2 * np.pi, size=(datapoints, n_qubits)) # type: ignore
     states = np.array([get_state(x) for x in X_pool])
+
+    # compute gram matrix (NxN positive semi-definite)
     K_q = np.abs(states.conj() @ states.T) ** 2
 
+    # eigendecompose. the largest eigenvalue is the one where the qfm spreads data out the most
+    # easiest to draw a boundary around
     eigvals, eigvecs = np.linalg.eigh(K_q)
     v = eigvecs[:, -1] - np.median(eigvecs[:, -1])
 
@@ -175,8 +180,9 @@ def KernelGap_synthetic_dataset(
         import warnings
         warnings.warn(f"Leading eigenvalue gap is small ({gap:.4f}); try a different seed.")
 
+    # labels set along v axis, splits the values in two classes
     # larger skip = harder task
-    skip = pool_size // skipfactor   # pyright: ignore[reportOptionalOperand] 
+    skip = datapoints // skipfactor   # pyright: ignore[reportOptionalOperand] 
     keep_pos = np.argsort(-v)[skip : skip + n_per_class[1]]
     keep_neg = np.argsort(v)[skip : skip + n_per_class[-1]]
 
@@ -186,7 +192,7 @@ def KernelGap_synthetic_dataset(
 
 
 def find_hard_generating_candidate(
-    n_candidates: int = 20, pool_size: int = 100,
+    n_candidates: int = 20, datapoints: int = 100,
     n_qubits=N_QUBITS, n_layers=N_LAYERS, seed: int | None = None
 ):
     """
@@ -201,7 +207,7 @@ def find_hard_generating_candidate(
     dev = qml.device("default.qubit", wires=n_qubits)
 
     # fixed pool shared across all candidates -> fair comparison
-    X_pool = rng.uniform(0, 2 * np.pi, size=(pool_size, n_qubits))
+    X_pool = rng.uniform(0, 2 * np.pi, size=(datapoints, n_qubits))
     gamma = 1.0 / (n_qubits * X_pool.var())
     K_classical = rbf_kernel(X_pool, gamma=gamma)
 
